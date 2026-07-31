@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.models import SearchRequest, SearchResponse
@@ -12,19 +15,37 @@ from app.services.preview import PreviewError, get_visual_href, render_visual_co
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+ANALYTICS_MARKER = "<!-- cloudflare-web-analytics -->"
+ANALYTICS_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
 
 app = FastAPI(
     title="EO Image Check",
     description="Check Google AI provenance and independently compare broad geospatial claims with public Sentinel-2 observations.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-@app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+def cloudflare_analytics_script() -> str:
+    """Return the Cloudflare beacon only when a valid deployment token is set."""
+    token = os.getenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", "").strip()
+    if not token or not ANALYTICS_TOKEN_PATTERN.fullmatch(token):
+        return ""
+
+    beacon_config = json.dumps({"token": token}, separators=(",", ":"))
+    return (
+        '<script type="module" '
+        'src="https://static.cloudflareinsights.com/beacon.min.js" '
+        f"data-cf-beacon='{beacon_config}'></script>"
+    )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index() -> HTMLResponse:
+    page = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    page = page.replace(ANALYTICS_MARKER, cloudflare_analytics_script())
+    return HTMLResponse(page, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health")
