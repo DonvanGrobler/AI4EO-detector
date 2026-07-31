@@ -1,0 +1,31 @@
+{
+  "verification": {
+    "synthid": "inconclusive",
+    "content_credentials": "not_found",
+    "verification_explanation": "The dedicated verification result was inconclusive. No conclusion should be drawn from visual appearance alone."
+  },
+  "claim": {
+    "location_name": "Mount Vesuvius, Italy",
+    "latitude": 40.8214,
+    "longitude": 14.4265,
+    "location_source": "image_labels",
+    "location_evidence": [
+      "VESUVIUS: CURRENT ERUPTION",
+      "Parco Nazionale del Vesuvio",
+      "Ottaviano",
+      "Somma Vesuviana"
+    ],
+    "location_confidence": "high",
+    "date_mode": "latest_available",
+    "start_date": null,
+    "end_date": null,
+    "date_source": "latest_default",
+    "date_evidence": ["The image says current eruption but shows no explicit acquisition date."],
+    "event_type": "volcanic eruption",
+    "claim_summary": "The image claims that Mount Vesuvius is currently erupting.",
+    "estimated_scale": "landscape",
+    "sentinel_2_suitability": "possibly_suitable",
+    "suggested_aoi_radius_km": 12,
+    "limitations": "Sentinel-2 may show a large plume or broad surface effects, but clouds and the difference from VHR imagery limit direct comparison."
+  }
+}

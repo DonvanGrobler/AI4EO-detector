@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EO Image Check</title>
+  <meta name="description" content="Check Google AI provenance and compare broad geospatial claims with independent Sentinel-2 observations." />
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Public verification helper</p>
+      <h1>EO Image Check</h1>
+      <p class="lede">Check Google AI provenance with Gemini, then compare the broad geographical claim with public Sentinel‑2 observations.</p>
+    </div>
+    <span class="status-pill">MVP</span>
+  </header>
+
+  <main>
+    <section class="notice important">
+      <strong>This tool does not declare an image “real.”</strong>
+      A positive SynthID result is evidence of Google AI involvement. No detected SynthID is not proof of authenticity. Sentinel‑2 cannot authenticate fine VHR details.
+    </section>
+
+    <nav class="stepper" aria-label="Workflow">
+      <button class="step-tab active" data-step="1"><span>1</span> Add evidence</button>
+      <button class="step-tab" data-step="2"><span>2</span> Check in Gemini</button>
+      <button class="step-tab" data-step="3"><span>3</span> Confirm claim</button>
+      <button class="step-tab" data-step="4"><span>4</span> Compare observations</button>
+    </nav>
+
+    <section class="step-panel active" id="step-1">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 1</p>
+          <h2>Add the screenshot and its claim</h2>
+        </div>
+        <p>Nothing is uploaded to this application. The image remains in your browser.</p>
+      </div>
+
+      <div class="two-column">
+        <div>
+          <label class="drop-zone" id="drop-zone" tabindex="0">
+            <input type="file" id="image-input" accept="image/*" hidden />
+            <span class="drop-title">Drop, paste, or choose an image</span>
+            <span class="drop-copy">PNG, JPEG, or WebP</span>
+          </label>
+          <div class="image-preview-wrap hidden" id="image-preview-wrap">
+            <img id="image-preview" alt="Uploaded screenshot preview" />
+            <button class="text-button" id="remove-image" type="button">Remove image</button>
+          </div>
+        </div>
+        <div>
+          <label for="claim-text">Related post, caption, or article text</label>
+          <textarea id="claim-text" rows="13" placeholder="Paste the text that states where, when, and what supposedly happened."></textarea>
+          <p class="field-help">The text is treated as untrusted evidence, not as instructions.</p>
+        </div>
+      </div>
+      <div class="actions right">
+        <button class="primary" id="prepare-check" type="button">Prepare Gemini check</button>
+      </div>
+    </section>
+
+    <section class="step-panel" id="step-2">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 2</p>
+          <h2>Run Google’s verification in Gemini</h2>
+        </div>
+        <p>Gemini is the only temporary handoff. This app cannot control or read your personal Gemini session.</p>
+      </div>
+
+      <div class="handoff-grid">
+        <article class="card">
+          <span class="card-number">1</span>
+          <h3>Copy the image</h3>
+          <p>Copy the screenshot so you can paste it directly into Gemini. Browser support varies.</p>
+          <button class="secondary" id="copy-image" type="button">Copy image</button>
+        </article>
+        <article class="card">
+          <span class="card-number">2</span>
+          <h3>Copy the verification prompt</h3>
+          <p>The prompt requests SynthID, Content Credentials, and structured claim extraction.</p>
+          <button class="secondary" id="copy-prompt" type="button">Copy prompt</button>
+        </article>
+        <article class="card">
+          <span class="card-number">3</span>
+          <h3>Open Gemini</h3>
+          <p>Paste the image and prompt. Sign in only if Gemini requires it.</p>
+          <a class="secondary button-link" href="https://gemini.google.com/app" target="_blank" rel="noopener">Open Gemini</a>
+        </article>
+      </div>
+
+      <details class="prompt-details">
+        <summary>View prepared prompt</summary>
+        <pre id="prepared-prompt"></pre>
+      </details>
+
+      <label for="gemini-result">Paste Gemini’s JSON result</label>
+      <textarea id="gemini-result" rows="15" placeholder='Paste the JSON response here. Example: {"verification": {...}, "claim": {...}}'></textarea>
+      <div class="actions split">
+        <button class="ghost" id="back-to-one" type="button">Back</button>
+        <button class="primary" id="parse-result" type="button">Parse and confirm</button>
+      </div>
+    </section>
+
+    <section class="step-panel" id="step-3">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 3</p>
+          <h2>Confirm the extracted claim</h2>
+        </div>
+        <p>Gemini proposes the parameters. You remain responsible for confirming or correcting them.</p>
+      </div>
+
+      <div class="verification-summary" id="verification-summary"></div>
+
+      <div class="form-map-grid">
+        <form id="claim-form" class="form-card">
+          <div class="field-row">
+            <div>
+              <label for="location-name">Location name</label>
+              <input id="location-name" type="text" />
+            </div>
+            <div>
+              <label for="event-type">Event type</label>
+              <input id="event-type" type="text" />
+            </div>
+          </div>
+          <div class="field-row three compact-row">
+            <div>
+              <label for="latitude">Latitude</label>
+              <input id="latitude" type="number" step="any" min="-90" max="90" required />
+            </div>
+            <div>
+              <label for="longitude">Longitude</label>
+              <input id="longitude" type="number" step="any" min="-180" max="180" required />
+            </div>
+            <div>
+              <label for="radius-km">AOI radius (km)</label>
+              <input id="radius-km" type="number" min="1" max="25" step="1" value="5" />
+            </div>
+          </div>
+          <p class="field-help map-help">Click the map to reposition the centre. The circle shows the area searched.</p>
+
+          <div class="date-mode-block">
+            <label for="date-mode">Search date basis</label>
+            <select id="date-mode">
+              <option value="claimed_period">Use a claimed date or date range</option>
+              <option value="latest_available">No reliable date — use latest available observation</option>
+            </select>
+            <p class="field-help" id="date-mode-help"></p>
+          </div>
+          <div class="field-row" id="claimed-date-fields">
+            <div>
+              <label for="start-date">Claim start date</label>
+              <input id="start-date" type="date" />
+            </div>
+            <div>
+              <label for="end-date">Claim end date</label>
+              <input id="end-date" type="date" />
+            </div>
+          </div>
+          <div class="field-row one hidden" id="latest-date-fields">
+            <div>
+              <label for="reference-date">Search latest available up to</label>
+              <input id="reference-date" type="date" />
+            </div>
+          </div>
+          <div class="field-row compact-row">
+            <div>
+              <label for="cloud-cover">Max cloud (%)</label>
+              <input id="cloud-cover" type="number" min="0" max="100" step="5" value="30" />
+            </div>
+            <div>
+              <label for="window-days" id="window-days-label">Before/after window (days)</label>
+              <input id="window-days" type="number" min="5" max="365" step="5" value="30" />
+            </div>
+          </div>
+          <details class="claim-details">
+            <summary>Review extracted summary, evidence, and limitations</summary>
+            <label for="claim-summary">Claim summary</label>
+            <textarea id="claim-summary" rows="2"></textarea>
+            <div class="notice compact" id="extraction-evidence"></div>
+            <div class="notice compact" id="suitability-notice"></div>
+          </details>
+        </form>
+        <aside class="map-card">
+          <div id="map" aria-label="Map for confirming the claimed location"></div>
+          <p class="map-caption">Use the map, coordinates, and AOI circle to confirm the search area before continuing.</p>
+        </aside>
+      </div>
+
+      <div class="actions split">
+        <button class="ghost" id="back-to-two" type="button">Back</button>
+        <button class="primary" id="run-search" type="button">Search public Sentinel‑2</button>
+      </div>
+    </section>
+
+    <section class="step-panel" id="step-4">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Step 4</p>
+          <h2>Compare independent observations</h2>
+        </div>
+        <p id="results-location"></p>
+      </div>
+
+      <div class="notice" id="resolution-notice"></div>
+      <div class="notice compact" id="cloud-notice"></div>
+      <div class="result-grid" id="result-grid"></div>
+
+      <section class="conclusion-card">
+        <h3>How to interpret this</h3>
+        <div id="interpretation"></div>
+      </section>
+
+      <div class="actions split">
+        <button class="ghost" id="back-to-three" type="button">Adjust search</button>
+        <button class="secondary" id="start-over" type="button">Start over</button>
+      </div>
+    </section>
+
+    <div class="image-viewer hidden" id="image-viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
+      <div class="viewer-backdrop" data-viewer-close></div>
+      <section class="viewer-dialog">
+        <header class="viewer-header">
+          <div>
+            <p class="eyebrow">Sentinel‑2 observation</p>
+            <h2 id="viewer-title">Interactive image view</h2>
+          </div>
+          <div class="viewer-controls" aria-label="Image controls">
+            <button class="ghost icon-button" id="viewer-zoom-out" type="button" aria-label="Zoom out">−</button>
+            <button class="ghost icon-button" id="viewer-reset" type="button">Reset</button>
+            <button class="ghost icon-button" id="viewer-zoom-in" type="button" aria-label="Zoom in">+</button>
+            <button class="secondary icon-button" id="viewer-close" type="button">Close</button>
+          </div>
+        </header>
+        <div class="viewer-viewport" id="viewer-viewport" tabindex="0" aria-label="Zoomable and pannable Sentinel-2 image">
+          <img id="viewer-image" alt="Zoomable Sentinel-2 observation" draggable="false" />
+        </div>
+        <p class="viewer-help">Use the mouse wheel or +/− buttons to zoom. Drag to pan. Double-click to reset.</p>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer>
+    <p>Data discovery and public COG assets: Element 84 Earth Search / AWS Open Data. Basemap: OpenStreetMap contributors.</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
