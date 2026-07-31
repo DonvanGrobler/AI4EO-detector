@@ -1,59 +1,96 @@
-# AI4EO Detector — v0.4
+# EO Image Check
 
-A lightweight public web application that keeps two questions separate:
+A lightweight verification helper for screenshots of satellite, aerial, and map imagery.
 
-1. **Image provenance:** guide the user through Gemini's SynthID and Content Credentials check using the screenshot that is actually circulating.
-2. **Independent EO context:** compare the broad geographical claim with public Sentinel-2 Level-2A observations from Element 84 Earth Search and AWS Open Data.
+It keeps two questions separate:
 
-The application does not declare a screenshot “real” or “fake.” A positive provenance signal and independent observations provide evidence; missing signals remain inconclusive.
+1. **Was Google AI involved in creating or editing the screenshot?** The application guides the user through Gemini's SynthID and Content Credentials check.
+2. **Does independent Earth-observation data support the broad geographical claim?** The application retrieves public Sentinel-2 observations through Element 84 Earth Search and AWS Open Data.
+
+> [!IMPORTANT]
+> **Project status: experimental public prototype.** Results may be incomplete or inconclusive and must not be treated as a professional fact-checking determination, proof of authenticity, or confirmation that a depicted event occurred.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DonvanGrobler/AI4EO-detector)
 
-## Public hosting
+## What the tool does
 
-The application includes a FastAPI backend for Earth Search queries and server-side COG rendering, so it cannot run on GitHub Pages alone. The included `render.yaml` and Dockerfile support free deployment on Render:
+- Accepts a pasted, dropped, or uploaded screenshot together with its accompanying post, caption, or article text.
+- Prepares a structured Gemini prompt for checking SynthID, Content Credentials, visible place names, dates, and the broad claim.
+- Lets the user confirm or correct the extracted location, date, search radius, and cloud limit.
+- Searches public Sentinel-2 Level-2A observations before, during, and after a claimed date.
+- Uses the latest acceptable observation when no reliable date is available.
+- Explains when a newer or closer observation was rejected because of scene-level cloud cover.
+- Displays returned imagery in a zoomable and pannable viewer.
+- Keeps the screenshot in browser memory rather than uploading it to the application backend.
 
-1. Select **Deploy to Render** above.
-2. Sign in to Render and connect this repository.
-3. Keep the **Free** instance type.
-4. Create the service and use the assigned public `onrender.com` address.
+## What the tool does not do
 
-Commits to `main` redeploy automatically. Visitors do not need Render, AWS, Microsoft, Copernicus, or application accounts. Gemini may require its own sign-in for SynthID verification.
+- It does not provide a universal AI-image detector.
+- It does not declare an image simply “real” or “fake.”
+- A negative SynthID result does not prove that an image is authentic or that another AI system was not used.
+- Sentinel-2 cannot authenticate the exact pixels or fine details of a very-high-resolution screenshot.
+- It cannot reliably verify individual buildings, vehicles, people, or other details below Sentinel-2's effective resolution.
+- Independent satellite observations may support or contradict a broad claim without proving that the circulated screenshot itself is genuine.
 
-Render's free web service can sleep after periods without traffic, so the first request after an idle period may take longer. The interface displays loading feedback while the service finds and prepares imagery.
+## How it works
+
+1. Add a screenshot and any related text.
+2. Copy the screenshot and open Gemini in a separate tab.
+3. Paste the screenshot into Gemini, return to the application, and copy the prepared verification prompt.
+4. Paste Gemini's structured JSON response back into the application.
+5. Confirm the extracted location, date, search radius, and cloud threshold.
+6. Compare public Sentinel-2 observations and read the accompanying limitations.
+
+The Gemini handoff is currently manual because this application does not control or read a user's personal Gemini session.
+
+## Current features
+
+- Guided four-step workflow with completed-step navigation
+- Screenshot drag-and-drop, file selection, and clipboard paste
+- Prompt-injection-resistant handling of accompanying text as untrusted evidence
+- Extraction of location clues from both text and readable labels inside the screenshot
+- Explicit fallback to a latest-available search when no reliable date is present
+- Public STAC search through Element 84 Earth Search
+- Public HTTPS Cloud-Optimized GeoTIFF access through AWS Open Data
+- Before, during, and after comparisons for dated claims
+- Diagnostic explanations for cloud-related scene rejection
+- Loading feedback for searches and imagery rendering
+- Zoomable and pannable Sentinel-2 viewer
+- Responsive layout and light/dark themes
+- No application user accounts or persistent database
 
 ## Why Element 84 Earth Search
 
-- Public STAC API
-- Public HTTPS Cloud-Optimized GeoTIFF assets
-- No user account
+The application uses the `sentinel-2-c1-l2a` collection and its ready-made `visual` Cloud-Optimized GeoTIFF asset.
+
+This provides:
+
+- A public STAC API
+- Public HTTPS imagery assets
+- No end-user account
 - No OAuth flow
 - No SAS signing
-- No CDSE or Microsoft login
+- No Copernicus Data Space or Microsoft login
 
-The application uses the `sentinel-2-c1-l2a` collection and its ready-made `visual` COG asset.
+## Privacy
 
-## User flow
+- The screenshot remains in browser memory and is not uploaded to this application's backend.
+- It leaves the application only when the user deliberately pastes or uploads it into Gemini.
+- No user account or persistent application database is included.
+- Confirmed search parameters are sent to the application backend and then to Element 84 Earth Search.
+- Do not submit private, sensitive, or personally identifying imagery unless you understand the implications of sending it to the external services involved.
 
-1. Add a screenshot and its accompanying claim.
-2. Copy the screenshot, open Gemini, paste it, then return to copy the prepared verification prompt.
-3. Paste Gemini's JSON result back into the application.
-4. Confirm or correct the extracted location, date, search radius, and cloud limit.
-5. Compare before/during/after observations, or the latest acceptable observation when no reliable date exists.
-6. Open any returned image in a zoomable, pannable viewer.
+Any future visitor analytics should be documented here before being enabled.
 
-## Interface changes in v0.4
+## Limitations
 
-- Completed workflow tabs are clickable; future steps remain disabled until reached.
-- The Gemini handoff is presented as a guided sequence so the clipboard is not overwritten before the image is pasted.
-- Search, preview, and high-resolution viewer loading states explain longer first requests.
-- A single returned observation is displayed beside the interpretation panel to use the page width more effectively.
-- Internal MVP labels were removed and user-facing text was shortened.
-- Light and dark themes are available and remembered in the browser.
-
-## Traffic measurement
-
-Render's dashboard provides service-level request and bandwidth metrics. For visitor-oriented page views and basic audience trends, add a dedicated privacy-conscious web analytics beacon after the public hostname is known. Do not add analytics code without documenting it in the site's privacy information.
+- SynthID detection indicates compatible Google AI involvement when detected; a missing signal remains inconclusive.
+- Sentinel-2 visible imagery has 10 m spatial resolution and is most useful for broad floods, wildfire scars, deforestation, volcanic plumes, major construction, and regional land change.
+- Cloud filtering currently uses scene-level `eo:cloud_cover`, which may not describe cloud directly over the selected area.
+- The latest catalogued observation may lag behind the present because the next intersecting overpass has not occurred or a recent product is still being processed or catalogued.
+- The application selects one STAC item per comparison period. Areas spanning several Sentinel-2 tiles remain outside the current scope.
+- Earth Search and the public imagery hosts are external best-effort services without an availability guarantee from this project.
+- Gemini's output must be reviewed by the user and may contain extraction or geolocation errors.
 
 ## Run locally
 
@@ -75,26 +112,49 @@ docker build -t eo-image-check .
 docker run --rm -p 8000:8000 eo-image-check
 ```
 
+Open `http://localhost:8000`.
+
 ## Tests
 
 ```bash
 pytest -q
 ```
 
-The unit and interface-structure tests do not require network access. A live integration test requires access to Earth Search, the returned public AWS COG assets, OpenStreetMap tiles, and the Leaflet CDN.
+The unit and interface-structure tests do not require network access. A live integration test requires access to:
 
-## Privacy
+- Element 84 Earth Search
+- The public AWS COG assets returned by Earth Search
+- OpenStreetMap tiles
+- The Leaflet CDN
 
-- The screenshot remains in browser memory and is not uploaded to this application.
-- It leaves the application only when the user deliberately pastes or uploads it into Gemini.
-- No user account or persistent application database is included.
-- Confirmed search parameters are sent to the backend and then to Element 84 Earth Search.
+## Deploy on Render
 
-## Important limitations
+The project includes a `render.yaml` Blueprint and a Dockerfile because the FastAPI and Rasterio backend cannot run on GitHub Pages alone.
 
-- A detected SynthID signal indicates compatible Google AI involvement; a negative result does not establish authenticity.
-- Sentinel-2 visible imagery has 10 m resolution. It can provide context for broad floods, wildfire scars, deforestation, major construction, volcanic plumes, and regional changes, but not individual buildings, vehicles, people, or exact VHR details.
-- Cloud filtering currently uses scene-level `eo:cloud_cover`, which may not describe cloud directly over the selected area.
-- When no reliable date is found, the application searches transparently for the latest acceptable scene up to the confirmed reference date.
-- “No newer acquisition catalogued” may mean that the next intersecting overpass has not occurred or that a recent product is still being processed or catalogued.
-- The application selects one STAC item per period; areas spanning several Sentinel-2 tiles remain outside the current scope.
+1. Select **Deploy to Render** near the top of this README.
+2. Sign in to Render and connect this repository.
+3. Keep the **Free** instance type.
+4. Create the service.
+5. Use the assigned public `onrender.com` address.
+
+Commits to `main` trigger automatic redeployment. Free Render services can sleep after periods without traffic, so the first request after an idle period may take longer.
+
+Visitors do not need Render, AWS, Microsoft, Copernicus, or application accounts. Gemini may require its own sign-in for SynthID verification.
+
+## Licence and external data
+
+The source code in this repository is available under the [MIT License](LICENSE).
+
+That licence applies to the repository code only. Sentinel-2 imagery, Earth Search catalogue records, AWS-hosted assets, OpenStreetMap tiles, Gemini outputs, Google services, and other third-party materials remain subject to their respective providers' terms, licences, and attribution requirements. This repository does not relicense those materials.
+
+## Acknowledgements and independence
+
+The project uses or interacts with services and data provided by Google, Element 84, AWS Open Data, the Copernicus Programme, ESA, and OpenStreetMap contributors.
+
+This is an independent open-source project. It is not affiliated with, sponsored by, or endorsed by Google, Element 84, Amazon Web Services, Microsoft, the European Commission, ESA, or the Copernicus Programme.
+
+## Reporting problems
+
+Open a GitHub issue for reproducible bugs, failed searches, unclear results, accessibility problems, or suggestions.
+
+Do not post private, sensitive, personally identifying, or operationally sensitive imagery in a public issue. Provide a redacted example or a clear written reproduction where possible.
