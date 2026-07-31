@@ -10,7 +10,11 @@ It keeps two questions separate:
 > [!IMPORTANT]
 > **Project status: experimental public prototype.** Results may be incomplete or inconclusive and must not be treated as a professional fact-checking determination, proof of authenticity, or confirmation that a depicted event occurred.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DonvanGrobler/AI4EO-detector)
+## Try the live application
+
+[**Open EO Image Check →**](https://ai4eo-detector.onrender.com/)
+
+The application runs on Render's free service tier. The first visit after a period without traffic may take longer while the service starts.
 
 ## What the tool does
 
@@ -56,7 +60,7 @@ The Gemini handoff is currently manual because this application does not control
 - Diagnostic explanations for cloud-related scene rejection
 - Loading feedback for searches and imagery rendering
 - Zoomable and pannable Sentinel-2 viewer
-- Responsive layout and light/dark themes
+- Responsive layout with light and dark themes
 - No application user accounts or persistent database
 
 ## Why Element 84 Earth Search
@@ -79,8 +83,7 @@ This provides:
 - No user account or persistent application database is included.
 - Confirmed search parameters are sent to the application backend and then to Element 84 Earth Search.
 - Do not submit private, sensitive, or personally identifying imagery unless you understand the implications of sending it to the external services involved.
-
-Any future visitor analytics should be documented here before being enabled.
+- A deployment may optionally enable Cloudflare Web Analytics. When enabled, the page loads Cloudflare's analytics beacon for aggregate visitor and performance metrics.
 
 ## Limitations
 
@@ -120,41 +123,47 @@ Open `http://localhost:8000`.
 pytest -q
 ```
 
-The unit and interface-structure tests do not require network access. A live integration test requires access to:
+The unit and interface-structure tests do not require network access. A live integration test requires access to Earth Search, the returned public AWS COG assets, OpenStreetMap tiles, and the Leaflet CDN.
 
-- Element 84 Earth Search
-- The public AWS COG assets returned by Earth Search
-- OpenStreetMap tiles
-- The Leaflet CDN
+## Public deployment
 
-## Deploy on Render
+The included `render.yaml` and `Dockerfile` support deployment as a Render web service. The application uses Render's assigned `PORT` automatically and exposes `/health` for health checks.
 
-The project includes a `render.yaml` Blueprint and a Dockerfile because the FastAPI and Rasterio backend cannot run on GitHub Pages alone.
+The deployment owner must configure and monitor their own service. Visitors do not need Render, AWS, Microsoft, Copernicus, or application accounts.
 
-1. Select **Deploy to Render** near the top of this README.
-2. Sign in to Render and connect this repository.
-3. Keep the **Free** instance type.
-4. Create the service.
-5. Use the assigned public `onrender.com` address.
+## Optional Cloudflare Web Analytics
 
-Commits to `main` trigger automatic redeployment. Free Render services can sleep after periods without traffic, so the first request after an idle period may take longer.
+Cloudflare Web Analytics can be enabled without committing an analytics token to the repository.
 
-Visitors do not need Render, AWS, Microsoft, Copernicus, or application accounts. Gemini may require its own sign-in for SynthID verification.
+1. In Cloudflare, open **Web Analytics** and add the hostname `ai4eo-detector.onrender.com`.
+2. Open **Manage site** and copy the token from the generated JavaScript snippet.
+3. In Render, open the `ai4eo-detector` service and go to **Environment**.
+4. Add an environment variable named:
+
+   ```text
+   CLOUDFLARE_WEB_ANALYTICS_TOKEN
+   ```
+
+5. Set its value to the Cloudflare site token and save the changes.
+6. Render will redeploy the service. The backend injects the beacon only when this variable contains a valid token.
+7. View visitors, page views, and page-performance information in Cloudflare under **Web Analytics**.
+
+The token is designed to appear in the public page source, but keeping it in the Render environment avoids hard-coding deployment-specific configuration in the repository.
+
+Render's own **Metrics** page remains useful for request volume, CPU, memory, and outbound bandwidth. These service requests are not equivalent to unique visitors because one page visit can generate several API and image requests.
 
 ## Licence and external data
 
 The source code in this repository is available under the [MIT License](LICENSE).
 
-That licence applies to the repository code only. Sentinel-2 imagery, Earth Search catalogue records, AWS-hosted assets, OpenStreetMap tiles, Gemini outputs, Google services, and other third-party materials remain subject to their respective providers' terms, licences, and attribution requirements. This repository does not relicense those materials.
+That licence applies to this repository's code only. Sentinel-2 imagery, Earth Search catalogue records, AWS-hosted assets, OpenStreetMap tiles, Gemini outputs, and other third-party services remain subject to their respective providers' terms, licences, and attribution requirements. This repository does not relicense those materials.
 
-## Acknowledgements and independence
+## Independent project
 
-The project uses or interacts with services and data provided by Google, Element 84, AWS Open Data, the Copernicus Programme, ESA, and OpenStreetMap contributors.
-
-This is an independent open-source project. It is not affiliated with, sponsored by, or endorsed by Google, Element 84, Amazon Web Services, Microsoft, the European Commission, ESA, or the Copernicus Programme.
+This is an independent open-source project. It is not affiliated with or endorsed by Google, Element 84, Amazon Web Services, Microsoft, the European Commission, ESA, the Copernicus Programme, or OpenStreetMap.
 
 ## Reporting problems
 
-Open a GitHub issue for reproducible bugs, failed searches, unclear results, accessibility problems, or suggestions.
+Open a GitHub issue for reproducible bugs, failed searches, unclear results, documentation problems, or accessibility concerns.
 
-Do not post private, sensitive, personally identifying, or operationally sensitive imagery in a public issue. Provide a redacted example or a clear written reproduction where possible.
+Do not attach private, sensitive, or personally identifying imagery to a public issue. Use a synthetic or publicly shareable reproduction whenever possible.
