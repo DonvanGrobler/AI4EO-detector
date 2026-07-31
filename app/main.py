@@ -17,22 +17,34 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 ANALYTICS_MARKER = "<!-- cloudflare-web-analytics -->"
 ANALYTICS_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
+APP_VERSION = "0.5.1"
 
 app = FastAPI(
     title="EO Image Check",
     description="Check Google AI provenance and independently compare broad geospatial claims with public Sentinel-2 observations.",
-    version="0.5.0",
+    version=APP_VERSION,
 )
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+def analytics_token_status() -> tuple[bool, str]:
+    """Return safe analytics configuration status without exposing the token."""
+    token = os.getenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", "").strip()
+    if not token:
+        return False, "missing"
+    if not ANALYTICS_TOKEN_PATTERN.fullmatch(token):
+        return False, "invalid_format"
+    return True, "configured"
+
+
 def cloudflare_analytics_script() -> str:
     """Return the Cloudflare beacon only when a valid deployment token is set."""
-    token = os.getenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", "").strip()
-    if not token or not ANALYTICS_TOKEN_PATTERN.fullmatch(token):
+    configured, _ = analytics_token_status()
+    if not configured:
         return ""
 
+    token = os.environ["CLOUDFLARE_WEB_ANALYTICS_TOKEN"].strip()
     beacon_config = json.dumps({"token": token}, separators=(",", ":"))
     return (
         '<script type="module" '
@@ -49,8 +61,14 @@ async def index() -> HTMLResponse:
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, str | bool]:
+    analytics_configured, analytics_status = analytics_token_status()
+    return {
+        "status": "ok",
+        "version": APP_VERSION,
+        "analytics_configured": analytics_configured,
+        "analytics_status": analytics_status,
+    }
 
 
 @app.post("/api/search", response_model=SearchResponse)
