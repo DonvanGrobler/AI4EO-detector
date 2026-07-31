@@ -14,9 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(
-    title="EO Image Check MVP",
-    description="A lightweight assistant for checking Google AI provenance and independently corroborating broad geospatial claims.",
-    version="0.3.0",
+    title="EO Image Check",
+    description="Check Google AI provenance and independently compare broad geospatial claims with public Sentinel-2 observations.",
+    version="0.4.0",
 )
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
