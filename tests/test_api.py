@@ -5,10 +5,37 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_health():
+def test_health_without_analytics_token(monkeypatch):
+    monkeypatch.delenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", raising=False)
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {
+        "status": "ok",
+        "version": "0.5.1",
+        "analytics_configured": False,
+        "analytics_status": "missing",
+    }
+
+
+def test_health_with_valid_analytics_token(monkeypatch):
+    monkeypatch.setenv(
+        "CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+        "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+    )
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["analytics_configured"] is True
+    assert response.json()["analytics_status"] == "configured"
+
+
+def test_health_reports_invalid_analytics_token_without_exposing_it(monkeypatch):
+    token = "bad-token'><script>"
+    monkeypatch.setenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", token)
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["analytics_configured"] is False
+    assert response.json()["analytics_status"] == "invalid_format"
+    assert token not in response.text
 
 
 def test_index_omits_analytics_beacon_without_token(monkeypatch):
