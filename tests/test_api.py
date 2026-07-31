@@ -11,6 +11,31 @@ def test_health():
     assert response.json() == {"status": "ok"}
 
 
+def test_index_omits_analytics_beacon_without_token(monkeypatch):
+    monkeypatch.delenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", raising=False)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "cloudflare-web-analytics" not in response.text
+    assert "static.cloudflareinsights.com/beacon.min.js" not in response.text
+
+
+def test_index_injects_analytics_beacon_with_valid_token(monkeypatch):
+    token = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+    monkeypatch.setenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", token)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "cloudflare-web-analytics" not in response.text
+    assert "static.cloudflareinsights.com/beacon.min.js" in response.text
+    assert token in response.text
+
+
+def test_index_rejects_malformed_analytics_token(monkeypatch):
+    monkeypatch.setenv("CLOUDFLARE_WEB_ANALYTICS_TOKEN", "bad-token'><script>")
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "static.cloudflareinsights.com/beacon.min.js" not in response.text
+
+
 def test_claimed_search_rejects_invalid_dates_before_network_call():
     response = client.post(
         "/api/search",
